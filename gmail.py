@@ -1,77 +1,37 @@
-import os.path
-import base64
-import json
-import re
-import time
+# Imports
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-import logging
-import requests
-from google.oauth2 import service_account
-
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/gmail.modify']
-SERVICE_ACCOUNT_FILE = 'service_account.json'
-
-credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+import base64
+from email.mime.text import MIMEText
 
 
-def readEmails():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
+# Authenticate
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 
+          'https://www.googleapis.com/auth/gmail.modify']
 
-    print("Reading emails...")
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(               
-                # your creds file here. Please create json file as here https://cloud.google.com/docs/authentication/getting-started
-                'my_cred_file.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    try:
-        print("Reading emails againnn...")
-        # Call the Gmail API
-        service = build('gmail', 'v1', credentials=creds)
-        results = service.users().messages().list(userId='me', labelIds=['INBOX'], q="is:unread").execute()
-        messages = results.get('messages',[]);
-        if not messages:
-            print('No new messages.')
-        else:
-            message_count = 0
-            for message in messages:
-                msg = service.users().messages().get(userId='me', id=message['id']).execute()                
-                email_data = msg['payload']['headers']
-                for values in email_data:
-                    name = values['name']
-                    if name == 'From':
-                        from_name= values['value']                
-                        for part in msg['payload']['parts']:
-                            try:
-                                data = part['body']["data"]
-                                byte_code = base64.urlsafe_b64decode(data)
+token ={
+    "access_token": "ya29.a0AfB_byDJXUBEbizkGZeb1jogsi1lHBf7_XT3SWYW_8Wd4NlkXXb1-CD0_arHoDX1DQnCJn2zlVIvLe9mkYKi39lnSMkKJk6sedFvXa181rFotyN3b-GkgDJMr6KxCc1kJDYTvQg0Azl_9qrviTNGzh9xoxcm7mzCZfaJaCgYKAdQSARMSFQGOcNnCsqsW5_aldq_p-f42X6ozLQ0171",
+    "expires_in": 3599,
+    "refresh_token": "1//0dUtRuR8QRz5rCgYIARAAGA0SNwF-L9IrE-c2B_T7wp-eGhcC-v2qZ2NmHhWJbRDiJ8Z0BBCV8_EsUX7vMZwfrQCKdgGUAyniqhg",
+    "scope": "https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.readonly",
+    "token_type": "Bearer",
+    "client_id":"840092620237-1uh9le90vv1d4kttfeila9sjecng3jcj.apps.googleusercontent.com",
+    "client_secret":"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"
+}
 
-                                text = byte_code.decode("utf-8")
-                                print ("This is the message: "+ str(text))
+# Authenticate with a variable
+creds = Credentials.from_authorized_user_info(token, SCOPES)
 
-                                # mark the message as read (optional)
-                                msg  = service.users().messages().modify(userId='me', id=message['id'], body={'removeLabelIds': ['UNREAD']}).execute()                                                       
-                            except BaseException as error:
-                                pass                            
-    except Exception as error:
-        print(f'An error occurred: {error}')
+# If you choose to authenticate with a file, use this line instead
+# creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
-readEmails()
+service = build('gmail', 'v1', credentials=creds)
+
+amazon = service.users().messages().list(userId='me', q='subject: [GitHub] A third-party OAuth application has been added to your account', maxResults=10).execute()
+
+print(amazon)
+
+message = service.users().messages().get(userId='me', id='18b0c16c82be80ae').execute()
+print(message['snippet'])
